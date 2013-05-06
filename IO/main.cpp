@@ -1,29 +1,32 @@
 #include <stdio.h>
 
 #define MAXSIZE  1000
-#define TABWIDTH 8
+#define TABSTOP 8
 #define TAB '\t'
 #define SPACE ' '
 
 char *fgetline(char *buff, int size, FILE* stream);
 int getline(char *buff, int size);
 char* detab(const char *s_in, char *s_out);
-//char* entab(const char *s_in, char *s_out);
+char* entab(const char *s_in, char *s_out, int *l_in, int *l_out);
 
 int main()
 {
-	const int LEN = 100;
-	char line[LEN + 1];
-	char sout[TABWIDTH * LEN + 1];
+	const int LEN = 200;
+	char line[MAXSIZE];
+	char sout[MAXSIZE];
 	FILE *fout, *fin;
 	//fout = fopen("output.txt","w");
 	fout = stdout;
 	fin = stdin;
 	//fin = fopen("in.txt","r");
-	while (fgetline(line, LEN, fin) != NULL)
+	while (fgetline(line, 200, fin) != NULL)
 	{
 		//fputs(line, fout);
-		fputs(detab(line,sout), fout);
+		int in = 0, out = 0;
+		//fputs(detab(line, sout), fout);
+		fputs(entab(line, sout, &in, &out), fout);
+		fprintf(fout, "%d,%d\n", in, out);
 	}
 	fclose(fout);
 	fclose(fin);
@@ -81,7 +84,7 @@ int getline(char *buff, int size)
 //----------------------------------------------------------------------
 int gettabwidth(int offset)
 {
-	return TABWIDTH - (offset % TABWIDTH);
+	return TABSTOP - (offset % TABSTOP);
 };
 
 char* detab(const char *s_in, char* s_out)
@@ -103,5 +106,65 @@ char* detab(const char *s_in, char* s_out)
 			s_out[offset++] = a;
 	}
 	s_out[offset] = '\0';
+	return s_out;
+}
+
+//----------------------------------------------------------------------
+// Function: entab
+// Autor:    Peanut
+// Describe: 将空格串替换为最少的制表符和空格。
+//			 l_in(out):输入字符串长度；l_out(out):输出字符串长度
+//----------------------------------------------------------------------
+char* entab(const char *s_in, char *s_out, int *l_in, int *l_out)
+{
+	int i,x,a;
+	int offset;
+	int spaces;
+	
+	i = 0, x = 0, offset = 0, spaces = 0;
+	while ((a = s_in[i++]) != '\0')
+	{
+		if (a == SPACE)
+		{
+			++spaces;
+		} 
+		//else if (spaces == 0)
+		//{
+		//	s_out[x++] = a;
+		//	++offset;
+		//}
+		else if (spaces == 1)
+		{
+			s_out[x++] = ' ';
+			s_out[x++] = a;
+			offset += 2;
+			spaces = 0;
+		}
+		else
+		{
+			while (offset/TABSTOP != (offset+spaces)/TABSTOP)
+			{
+				s_out[x++] = '\t';
+				--spaces;
+				++offset;
+				while (offset%TABSTOP != 0)
+				{
+					--spaces;
+					++offset;
+				}
+			}
+			while (spaces > 0)
+			{
+				s_out[x++] = ' ';
+				--spaces;
+				++offset;
+			}
+			s_out[x++] = a;
+			++offset;
+		}
+	}
+	s_out[x] = '\0';
+	*l_in = i - 1;
+	*l_out = x;
 	return s_out;
 }
